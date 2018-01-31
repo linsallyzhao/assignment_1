@@ -1,0 +1,189 @@
+#data discription and stylized facts
+While looking at the price of the FX and close price of Ripple, it is quite
+obvious that Ripple price had huge upward movement during end of 2017 and
+begining of 2018. This is confirmed by the plot of log return of these two data.
+
+FinancialLogReturn.pgf
+RippleLogReturn.pgf
+FXPrice.pgf
+RippleClosePrice.pgf
+
+From the basic statistics of these data, we can see that both of them has fat
+tails which matches the stylized facts from financial data. However, the Ripple
+data is skewed to the positive part which is not common among traditional
+financial data.
+
+table discribe and skew kurtosis
+
+In the Augmented Dickey-Fuller test, both log return series got extremly low
+p-value, which means no unit root and data can be treated as stationary. However
+in the KPSS test, the results are a bit different. The log return of FX data
+cannot be rejected with p-value less than 0.1 under null hypothesis that x is
+level or trend stationary, while log return of Ripple can be rejected at 0.068,
+which means, although not very strong, there is evidence that it is not stationary.
+When performed anderson test, both are rejected with strong evidence meaning
+neither of the two is from normal distribution. I still fitted both data with 
+normal to serve as a bench mark.
+
+When ploting histogram, I chose the bin number that achieves good balance between
+bias and variance of estimation, thus minimized the loss function.
+FXhist.pgf
+RippleHist.pgf
+
+The positive autocorrelations with small lags indicate big movements tend to
+follow big movements, and when lags getting bigger, the sign of autocorrelations
+become random.
+
+FXAutoCo.pgf
+RippleAutoCo.pgf
+
+Volatility vs volume discuss with Mario
+
+
+#distribution estimation
+For the financial data, I used first 13 years as training set to estimate
+distribution. For the body part, I fitted a few distributions and believe t
+distribution fits the best.
+
+FXBodyFit
+
+For the tail, I separated the positive and negative returns, created a mirror
+set for each by time -1 to the positive/negative data, and combined the original
+and mirrored data. By doing this, I hope to capture the shape of each tail more
+percisely. I fitted each conbined set with a t distribution and the resulted
+distribution fit the tail very well.
+
+FXTailFit
+
+After a series of test of different distributions, I picked up a few potentially
+good fits and plot them together with histgram (with bin numbers optimiezed by 
+lowest value of lost function). Then I manully choes merge points and merged three
+different distribution. After numerically integrated the new function, I 
+normallized the merdged function and make sure the integration is 1 over the
+whole domain. I also performed a test to see how sensitive the risk measures
+estimated from this pdf are. It turn out all the risk meansures I estimated are
+not sencitive to the movement of merge points. The value changes are reported
+in the appendex.
+
+MergedPdf
+OneMergingPoint
+
+Here are the resulted risk measures and back test
+
+
+MergedRiskMeasure
+
+I also performed Kernel density estimation for financial data. I chose the
+bandwidth slightlly lower than the optimal one given by the minimum cross
+validation score because I want keep more information in the tail part rather
+than smooth it away.
+
+Here is the left tail of KDE ploted toghether with merdged pdf and histgram
+
+KDEVSMerged
+
+The risk measures estimated from these two distibutions are not very different.
+
+KDEvsMergedRisk
+
+table risk measrues from merge and KDE
+
+For Ripple data, because it has fatter tail in the positive half, in order to get
+conservative estimations of risk measures, I chose t distribution fitted with 
+mirrored positive data to discribe the log return. Risk measures estimated from
+this distribution and from KDE are plotted together. And because the t
+distribution assumes fatter tail, the related risk measrues indeed appear more
+conservative than those from KDE, thusperform better when tested on a high
+volatility period. However, 97.5% ES seems to be a good choice when considering
+efficiency of capital allocation.
+
+RippleKDEvsTRisk
+
+table risk measure from t and KDE
+
+#choice of trainning window
+I used 5 years as the length of training window, for every trainning set,
+I fitted it with normal distribution. I also fitted t
+distribution with mirrored negative half of the trainning set. From the plot 
+of risk measures we can see that the 95% var are not very different among 
+normal distribution, t distribution, and historical estimations. However, 99%
+var and 97.5% ES from t distributioin and historical method perform better 
+than those from normal distribution. The reason is normal distribution is
+limited buys it's shape and cannot discribe fat tail well enough.
+
+We can see clearly that for every risk measure, there is a downward slope when
+the extreme observations happens. And eventurally, when the extreme observations
+move out of the training window, the upward movement show up in all the risk
+measure. This implies that the estimation is only as good as the information
+it has access to. 
+
+FXPara5Y
+
+Having this idea in mind, I divided the financial data into 13 year and 1 year
+parts. Using the 13 year part as trainning set, I did the same analysis as above.
+The rusult shows that most of the risk meansures over estimated risk most of the
+time of the testing year. The reason is that the test year is relatively peaceful
+and has few big price movement while the estimations contain information of all 
+the extreme movement from last 13 years. This is a good result if one only care
+about preventing the risk. However, this is not a ideal way to allocate capital
+since part of the money could have been send out and made profit.
+
+FXParaAll
+
+
+It make sence to use shorter training window for ripple. The absolut values
+of extreme moves in ripple are much larger
+than that of the common moves. And big movements cluster which means as 
+long as you observe a big move you need to quickly prepare to deal with more. 
+Using long trainning windows means the estimated distribution can not react
+fast enough to the new change because a few new data point will ont change 
+much of the whole distribution. One may argur that with long training window
+distribution will remember the last time of big movement but I believe there
+there is no gurrantee how long it will be between two group of big movement
+and it is more reliable to get information from the new change in the market.
+Also, even the distribution remember the big movements, the information will
+be diluted by many more small movements.
+
+PipplePara180D
+
+However, short window makes the risk measures change a lot during time,
+especially for the historical estimation. Because if the window is too small
+the historical var might be the lowest return in the whole training window
+and as long as that lowest observation moves out, the estmation will change
+damatically. So for HS estimation, I chose slightly longer window.
+
+RipplePara350D
+
+The down side of short training window is that the risk measures move dramatically
+which might means that capital allocation need to change a lot between days.
+With short trainning window, the ES is smoother and might be higher than 
+99% var because it is a mean of a few extreme values while 99% var might be
+the lowest value.
+
+#Resampling
+resampled weekly and take the first day of the week as the observation.
+sample size reduced to 231. After taking one year (52 week) out as test
+set, the traning set is really small. Fitted with t and normal
+distribution. Calculated var 95%, 99% and ES 97.5%.
+
+In total, these
+risk meansures perform worse than those estimated from the daily data.
+mainly because of lacking training data, especally some extreme cases
+might got lost during the resampling. The historical method seems suffer the most.
+
+And among these, ES estimated from t distribution perform especially
+badly. The reason for this is ES heavily relies on the tail of
+distribution, not only quantile on the tail, but the shape of the tail.
+All the losses in information from resampling, especially the extreme
+observations, severely affects the shape of the estimated tail.
+
+RippleParaResample  vs  RippleParaAll
+
+
+#Appendix
+
+Table of sensitivity test
+
+QQ plot of both
+
+
