@@ -11,9 +11,13 @@ RippleClosePrice.pgf
 From the basic statistics of these data, we can see that both of them has fat
 tails which matches the stylized facts from financial data. However, the Ripple
 data is skewed to the positive part which is not common among traditional
-financial data.
+financial data. Absolut values of minimum and maxmum log return of Ripple price
+are both larger than those of FX data.
 
-table discribe and skew kurtosis
+table 1: basic statistics compareson
+|   |count|mean|std|min|25% quantile|50% quantile|75% quantile|max|skew|kurtosis|
+|FX|4196|0.00027|0.012|-0.15|-0.0056|0.00074|0.0067|0.061|-1.15|11.26|
+|Ripple|1618|0.0037|0.080|-0.62|-0.021|-0.0023|0.021|1.02|2.18|28.45|
 
 In the Augmented Dickey-Fuller test, both log return series got extremly low
 p-value, which means no unit root and data can be treated as stationary. However
@@ -39,6 +43,10 @@ RippleAutoCo.pgf
 
 Volatility vs volume discuss with Mario
 
+#Risk measures estimation
+
+For this whole section, I calculated 95% VaR, 99% VaR and 97.5% ES. The choice
+are made base on the industrial convention.
 
 #distribution estimation
 For the financial data, I used first 13 years as training set to estimate
@@ -62,14 +70,13 @@ different distribution. After numerically integrated the new function, I
 normallized the merdged function and make sure the integration is 1 over the
 whole domain. I also performed a test to see how sensitive the risk measures
 estimated from this pdf are. It turn out all the risk meansures I estimated are
-not sencitive to the movement of merge points. The value changes are reported
-in the appendex.
+not sencitive to the movement of merge points, and ES is the most sensitive among
+all three. The value changes are reported in the appendex.
 
 MergedPdf
 OneMergingPoint
 
 Here are the resulted risk measures and back test
-
 
 MergedRiskMeasure
 
@@ -86,7 +93,14 @@ The risk measures estimated from these two distibutions are not very different.
 
 KDEvsMergedRisk
 
-table risk measrues from merge and KDE
+table 2: risk measures of FX data from merged pdf and KDE
+|   |95% VaR|99% VaR|97.5% ES|
+|merged pdf|-0.020|-0.038|-0.041|
+|KDE|-0.019|-0.037|-0.040|
+
+The disadventage of these two methods are they both need judgement call and that
+makes them protentially time consuming and rely heavily on the experience level
+of the person perform the analysis.
 
 For Ripple data, because it has fatter tail in the positive half, in order to get
 conservative estimations of risk measures, I chose t distribution fitted with 
@@ -99,7 +113,10 @@ efficiency of capital allocation.
 
 RippleKDEvsTRisk
 
-table risk measure from t and KDE
+table 3: risk measures of Ripple from t distribution and KDE
+|   |95% VaR|99% VaR|97.5% ES|
+|t distribution|-0.092|-0.25|-0.26|
+|KDE|-0.087|-0.20|-0.22|
 
 #choice of trainning window
 I used 5 years as the length of training window, for every trainning set,
@@ -179,11 +196,27 @@ observations, severely affects the shape of the estimated tail.
 
 RippleParaResample  vs  RippleParaAll
 
+Given the results from stationary tests, we have reason to believe that both
+log return series are stationary. Hence, cross validation is also one reasonable
+method for back testing.
 
 #Appendix
 
-Table of sensitivity test
+table 4: sensitivity test results
+|   |95% VaR|99% VaR|97.5% ES|
+|selected merging point|-0.020459515558606166|-0.037932240524715076|-0.04094372977264025|
+|5% left|-0.020459515558606166|-0.037932240524715076|-0.0409199925753798|
+|5% right|-0.020459515558606166|-0.037932240524715076|-0.04091433935803336|
+|10% left|-0.020459515558606166|-0.037932240524715076|-0.04125209134082783|
+|10% right|-0.020459515558606166|-0.03778290099509021|-0.04121393468613737|
+|15% left|-0.020459515558606166|-0.03778290099509021|-0.041163228731784414|
+|15% right|-0.020459515558606166|-0.03778290099509021|-0.04102934512352348|
+|20% left|-0.020459515558606166|-0.03778290099509021|-0.04105675879949472|
+|20% right|-0.020459515558606166|-0.037484221935840494|-0.04073922350506344|
 
 QQ plot of both
 
-
+#Reference
+The shortfalls of expected shortfall from Risk November 2014
+Risk measure estimation Camilo Garcia Trillos Dec. 2017
+practic.m 
