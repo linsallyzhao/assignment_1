@@ -1,0 +1,301 @@
+\documentclass{article}
+\usepackage[left=3cm,right=3cm,top=2cm,bottom=2cm]{geometry}
+\usepackage{pgfplots}
+\usepackage{parskip}
+\usepackage{caption}
+
+\usepackage{float}
+\restylefloat{table}
+
+\setlength{\parindent}{0mm}
+
+\pgfplotsset{compat=1.15}
+
+\newcommand{\cia}[1]{\resizebox{\textwidth}{!}{\input{#1}}}
+\newcommand{\ciapdf}[1]{\resizebox{\textwidth}{!}{\includegraphics{#1}}}
+
+\begin{document}
+
+\title{Statistical analysis of FX/Ripple}
+\author{Lin Zhao (16010906)}
+\date{\today}
+\maketitle
+
+\subsection*{Data description and stylised facts}
+
+Comparing FX and Ripple close prices around the turn of 2017/18, it's clear
+that Ripple's price increased dramatically compared to its baseline, whereas FX
+did not. This is visible in log-return:
+
+\ciapdf{assignment_1/report_pic/FXPrice.pdf}
+\ciapdf{assignment_1/report_pic/RippleClosePrice.pdf}
+\ciapdf{assignment_1/report_pic/FinancialLogReturn.pdf}
+\ciapdf{assignment_1/report_pic/RippleLogReturn.pdf}
+
+Both inputs have fat tails, which matches the stylised facts from the financial
+data. The Ripple data is skewed positive, which is unusual for financial data,
+and the absolute minimum and maximum log-returns are both larger than FX.
+
+\begin{table}[H]
+    \caption{Basic statistical comparison}
+    \begin{tabular}{|l|l|l|l|l|l|l|l|l|l|l|l|}
+    \hline
+           & count & mean    & std   & min   & p25     & p50     & p75    & max   & skew  & kurtosis \\ \hline
+    FX     & 4196  & 0.00027 & 0.012 & -0.15 & -0.0056 & 0.00074 & 0.0067 & 0.061 & -1.15 & 14.26    \\ \hline
+    Ripple & 1618  & 0.0037  & 0.080 & -0.62 & -0.021  & -0.0023 & 0.021  & 1.03  & 2.18  & 31.45    \\ \hline
+    \end{tabular}
+\end{table}
+
+In the Augmented Dickey-Fuller test, both log-return series have extremely low
+p-values, so there is no unit root, and the data can be treated as stationary.
+In the KPSS test, results differ: under null hypothesis that \emph{x}
+is level- or trend-stationary, we cannot reject the FX log-return with
+p-values less than 0.1. Ripple can be rejected at 0.068, providing
+weak evidence Ripple's log-return is not stationary. In Anderson tests,
+both are strongly rejected, meaning neither is from a normal distribution. I
+still fit them with normal distributions to benchmark.
+
+For the immediately following histograms, I chose bin numbers balancing bias
+and estimation variance, thus minimising the loss function.
+
+\ciapdf{assignment_1/report_pic/FXhist.pdf}
+\ciapdf{assignment_1/report_pic/RippleHist.pdf}
+
+Positive autocorrelations with small lags indicate big movements following
+other big movements. When lag increases, the sign of autocorrelations
+becomes random.
+
+\ciapdf{assignment_1/report_pic/FXAutoCo.pdf}
+\ciapdf{assignment_1/report_pic/RippleAutoCo.pdf}
+
+There is positive correlation between Ripple's volatility/volume, which is
+often observed on typical financial markets.
+
+\ciapdf{assignment_1/report_pic/volVSvol.pdf}
+
+\subsection*{Estimation of risk measures}
+
+In this section, 95\%/99\% VaR and 97.5\% ES are used following industry
+convention.
+
+\subsubsection*{Distribution estimation}
+
+When estimating distribution, I used the first 13 years of financial data as a
+training set, with the last year as a test set. T-distribution was used as it
+best fit the body.
+
+\ciapdf{assignment_1/report_pic/FXBodyFit.pdf}
+
+For the tail, I:
+
+\begin{enumerate}
+    \item Separated the positive/negative returns
+    \item Mirrored each set, multiplying by $-1$
+    \item Combined the mirrored and original data
+\end{enumerate}
+
+In doing this one can more accurately capture the shape of each tail. Each
+combined set was fit with a t-distribution, which fit well.
+
+\ciapdf{assignment_1/report_pic/FXTailFit.pdf}
+
+I tested various distributions, picking up a few potential fits, overlaying
+them on a histogram. Choosing merging points based on the plot, I merged the
+three distributions together. After numerically integrating the new function, I
+normalised the merged function, making sure the integration was 1 over the
+entire domain. I also evaluated the sensitivity of the risk measures estimated
+using this PDF, which showed it is not sensitive to moving merge points (see
+appendix for values).
+
+\ciapdf{assignment_1/report_pic/MergedPdf.pdf}
+\ciapdf{assignment_1/report_pic/OneMergingPoint.pdf}
+
+Risk measures were estimated based on the merged PDF, and were plotted both
+with the training and test sets. The risk measures are only rarely breached as
+the training set contains high-volatility periods, but the test set is
+generally low-volatility. A move restrictive test can be performed on a mixed
+set of last year's data and manually generated high-volatility data.
+
+\ciapdf{assignment_1/report_pic/MergedRiskMeasure.pdf}
+
+In the above method, the data sets used to fit the tail distribution still
+contain substantial body information. Instead of isolating only half of the
+data, it's more reasonable to isolate only the tail and fit a distribution, but
+I'm not sure exactly how to merge body and tail distributions.
+
+When performing kernel density estimation on the financial data, I used a
+bandwidth slightly lower than the optimal one given by the mininimum
+cross-validation score, as I wanted to avoid over-smoothing the tail. Here is
+the left tail of this KDE, juxtaposed with the merged PDF and histogram:
+
+\ciapdf{assignment_1/report_pic/KDEVSMerged.pdf}
+
+As you can see, the risk measures estimated from these two distributions are
+not very different.
+
+\ciapdf{assignment_1/report_pic/KDEvsMergedRisk.pdf}
+
+Here are the risk measures of the FX data from the merged PDF and KDE:
+
+\begin{table}[H]
+    \centering
+    \caption{Risk measures of FX from merged PDF and KDE}
+    \begin{tabular}{|l|l|l|l|}
+    \hline
+               & 95\% VaR & 99\% VaR & 97.5\% ES \\ \hline
+    Merged PDF & -0.020   & -0.038   & -0.041    \\ \hline
+    KDE        & -0.019   & -0.037   & -0.040    \\ \hline
+    \end{tabular}
+\end{table}
+
+Both methods require manual judgment calls, which makes their effectiveness
+highly dependent on the experience level of the person analysing them, and
+makes analysis more time-consuming.
+
+As Ripple data has a fatter positive tail, I chose a t-distribution fitted with
+mirrored positive data to describe the log-return in order to get conservative
+estimations of risk measures, plotting risk measures estimated from this
+distribution and the KDE together. As the t-distribution assumes a fatter tail,
+the risk measures suggested indeed appear more conservative than those from the
+KDE, and thus perform better when tested on a high volatility period. That
+said, KDE 97.5\% ES appears optimal when considering efficiency of capital
+allocation.
+
+\ciapdf{assignment_1/report_pic/RippleKDEvsTRisk.pdf}
+
+Here are Ripple's risk measures, based on the t-distribution and KDE:
+
+\begin{table}[H]
+    \centering
+    \caption{Risk measures of Ripple from t-distribution and KDE}
+    \begin{tabular}{|l|l|l|l|}
+    \hline
+                   & 95\% VaR & 99\% VaR & 97.5\% ES \\ \hline
+    t distribution & -0.092   & -0.25    & -0.26     \\ \hline
+    KDE            & -0.087   & -0.20    & -0.22     \\ \hline
+    \end{tabular}
+\end{table}
+
+\subsubsection*{Choice of training window}
+
+For financial data, I used a 5 year training window, fitting each training set
+with a normal distribution and t-distribution fitted with mirrored negative
+data. From the plot, we see 95\% VaR is not very different
+among a normal distribution, t-distribution, and historical estimations.
+However, 99\% VaR and 97.5\% ES from the t-distribution and historical method
+perform better than those from the normal distribution, as the normal
+distribution is limited by its shape, and as cannot represent the fat tail as
+accurately.
+
+It's clear there is a downward slope when extreme observations happen in each
+risk measure. Eventually, once each of these extreme observations move out of the
+training window, upward movements start to show up. This implies the
+estimation is only as good as the data provided.
+
+\ciapdf{assignment_1/report_pic/FXPara5Y.pdf}
+
+With this in mind, I split the 14-year financial data into 13 years (training)
+and 1 year (test). When I then performed the same analysis as above using the
+13-year segment as the training set, most risk measures
+over-estimated risk for most of the tested year. This is because the test year
+is relatively quiet, producing very few large price movements, whereas the
+estimations cover extreme price movements over the last 13 years. While this is
+okay if one only cares about preventing risk, this is not an ideal way to
+allocate capital as more money could have been invested and made a profit.
+
+\ciapdf{assignment_1/report_pic/FXParaAll.pdf}
+
+The absolute values of extreme movements in Ripple are much larger than typical
+financial market movements. They also are tightly clustered --- once one
+happens, you need to be ready for more. Long training windows inhibit reacting
+to these movements, as these few extreme datapoints only have a muted effect on
+the overall distribution due to dilution by many other small movements. One
+might assume a long training window distribution would allow remembering the
+previous extreme movement, but there is no common delay between multiple
+extreme movements, so using new market generation is generally more reliable.
+
+\ciapdf{assignment_1/report_pic/RipplePara180D.pdf}
+
+Smaller window sizes make the risk measures highly variable, and cause highly
+unpredictable day-to-day capital allocation. This is especially clear in 99\%
+historical VaR, as it might be the lowest return in the window. In this case,
+historical ES would be smoother than 99\% VaR as it is the mean of a few
+extreme values. As such, I chose a slightly longer window for historic
+estimation.
+
+\ciapdf{assignment_1/report_pic/RipplePara350D.pdf}
+
+Given the stationary test results, it seems both log-return series are
+stationary, so cross-validation is another reasonable backtesting method.
+
+\section*{Conclusion}
+
+The log-return of Ripple has a higher volatility and fatter tail compared with
+traditional financial data, indicating that it is riskier than common financial
+assets. The fact that we have less reason to treat it as stationary reduces the
+reliability of analysis.
+
+As for estimating risk measures, it's clear that complicated methods don't
+necessarily yield more accurate results. It's also clear that the choice of
+training window it at least as important as the choice of method used for
+distribution estimation.
+
+When analysing the risk of a Ripple portfolio, a fat-tailed distribution is
+neded, as we need a shorter training window than that of typical financial
+portfolios. Lacking observations limits the discovery of long-term features in
+the Ripple data --- for example, this makes resampling less reliable. Ripple's
+positive skewness also won't necessarily hold in the future.
+
+\section*{Appendix}
+
+\subsection*{Resampling methodology}
+
+I resampled weekly, taking the Monday each week as observation, and reduced
+sample size to 231. I then took a 52-week test set, fitting with normal and
+t-distributions and calculating VaR 95\%/99\% and ES 97.5\%.
+
+These risk measures perform worse than those estimated from the daily data,
+mainly because they lack training data. Critically, some extreme cases may get
+lost during resampling --- the historical method suffers worst.
+
+ES estimated from t-distribution performs especially poorly, as it heavily
+relies on not only the quantile of the tail, but also the shape. Tail shape is
+severely affected by resampling, especially in the extremes.
+
+\ciapdf{assignment_1/report_pic/RippleParaResample.pdf}
+\ciapdf{assignment_1/report_pic/RippleParaAll.pdf}
+
+\subsection*{Sensitivity test results}
+
+\begin{table}[H]
+    \centering
+    \caption{Sensitivity test results}
+    \begin{tabular}{|l|l|l|l|}
+    \hline
+                           & 95\% VaR              & 99\% VaR              & 97.5\% ES             \\ \hline
+    selected merging point & -0.020459515558606166 & -0.037932240524715076 & -0.04094372977264025  \\ \hline
+    5\% left               & -0.020459515558606166 & -0.037932240524715076 & -0.0409199925753798   \\ \hline
+    5\% right              & -0.020459515558606166 & -0.037932240524715076 & -0.04091433935803336  \\ \hline
+    10\% left              & -0.020459515558606166 & -0.037932240524715076 & -0.04125209134082783  \\ \hline
+    10\% right             & -0.020459515558606166 & -0.03778290099509021  & -0.04121393468613737  \\ \hline
+    15\% left              & -0.020459515558606166 & -0.03778290099509021  & -0.041163228731784414 \\ \hline
+    15\% right             & -0.020459515558606166 & -0.03778290099509021  & -0.04102934512352348  \\ \hline
+    20\% left              & -0.020459515558606166 & -0.03778290099509021  & -0.04105675879949472  \\ \hline
+    20\% right             & -0.020459515558606166 & -0.037484221935840494 & -0.04073922350506344  \\ \hline
+    \end{tabular}
+\end{table}
+
+\begin{thebibliography}{9}
+\bibitem{riskmag} 
+John Hull and Alan White,
+\textit{The shortfalls of expected shortfall}.
+Risk, 2014
+
+\bibitem{rme} 
+Camilo Garcia Trillos,
+\textit{Risk measure estimation}.
+December 2017
+\end{thebibliography}
+
+\end{document}
+
